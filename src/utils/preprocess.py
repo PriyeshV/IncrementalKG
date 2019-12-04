@@ -55,7 +55,6 @@ for file in files:
         for i, relation in tqdm(enumerate(relations.keys()), ascii=True, desc='Relation count stats'):
             rel_n_edges[relation] = adj[relations[relation]].nnz
 
-        print(min(rel_n_edges.values()), max(rel_n_edges.values()))
         plt.hist(rel_n_edges.values(), log=True, bins=30)  # axis is scaled in the log space and not the values
         plt.title('Relation: Histogram of #edges\n Min: {}, Max: {}, Mean: {}'.format(min(rel_n_edges.values()), max(rel_n_edges.values()), round(np.mean(list(rel_n_edges.values()))), 1))
         plt.show()
@@ -63,8 +62,10 @@ for file in files:
         # Compute Entity statistics
         ent_n_relations = dict()
         sum_adj = adj[0].copy()
+        ent_rel_type = np.full((n_entities, n_relations), True, dtype=np.bool)
         for i in tqdm(range(1, n_relations), ascii=True, desc='Entity count stats'):
             sum_adj += adj[i]
+            ent_rel_type[:, i] = adj[i].sum(axis=1).astype(bool).reshape((n_entities,))
 
         ent_head_n_rels = sum_adj.sum(axis=1)  # out-edge
         ent_tail_n_rels = sum_adj.tocsc().sum(axis=0)  # in-edge
@@ -72,4 +73,10 @@ for file in files:
         plt.hist(ent_n_rels, log=True, bins=30)  # axis is scaled in the log space and not the values
         plt.title('Entity: Histogram of #edges\n Min: {}, Max: {}, Mean: {}'.format(np.min(ent_n_rels), np.max(ent_n_rels), round(np.mean(ent_n_rels))))
         plt.show()
+
+        ent_rel_type = np.count_nonzero(ent_rel_type, axis=1)
+        plt.hist(ent_rel_type, log=True, bins=20)
+        plt.title('Entity: Histogram of #edge types\n Min: {}, Max: {}, Mean: {}'.format(np.min(ent_rel_type), np.max(ent_rel_type), round(np.mean(ent_rel_type))))
+        plt.show()
+
 
