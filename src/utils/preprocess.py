@@ -4,6 +4,7 @@ import pandas as pd
 from tqdm import tqdm
 import scipy.sparse as sps
 import matplotlib.pyplot as plt
+from collections import defaultdict
 
 path_prefix = '../../Datasets'
 dataset = 'FB20K'
@@ -47,19 +48,30 @@ for file in files:
             rel.append(relations[relation])
         del triples
 
-        for i in tqdm(range(n_relations), ascii=True, desc='Converting to CSR matrix'):
-            adj[i] = adj[i].tocsr()
-
         # Compute Relation statistics
-        rel_n_edges = dict()
-        for i, relation in tqdm(enumerate(relations.keys()), ascii=True, desc='Relation count stats'):
-            rel_n_edges[relation] = adj[relations[relation]].nnz
+        rel_n_edges = dict()  # n_edges in each relation
+        edge_n_rels = dict()   # edge/entity-pair statistics - n_relations for entity-pair
+        edge_n_rels = defaultdict(lambda: 0, edge_n_rels)
+        for n, rel in tqdm(enumerate(relations.keys()), ascii=True, desc='Edge count stats'):
+            (row, col) = adj[relations[rel]].nonzero()
+            nnz = len(row)
+            rel_n_edges[relations[rel]] = nnz
+            for k in range(nnz):
+                i, j = row[k], col[k]
+                edge_n_rels[(i, j)] += 1
 
         plt.hist(rel_n_edges.values(), log=True, bins=30)  # axis is scaled in the log space and not the values
         plt.title('Relation: Histogram of #edges\n Min: {}, Max: {}, Mean: {}'.format(min(rel_n_edges.values()), max(rel_n_edges.values()), round(np.mean(list(rel_n_edges.values()))), 1))
         plt.show()
 
+        plt.hist(edge_n_rels.values(), log=True, bins=5)  # axis is scaled in the log space and not the values
+        plt.title('Entity-pair: Histogram of #relations\n Min: {}, Max: {}, Mean: {}'.format(min(edge_n_rels.values()), max(edge_n_rels.values()), round(np.mean(list(edge_n_rels.values()))), 1))
+        plt.show()
+
         # Compute Entity statistics
+        for i in tqdm(range(n_relations), ascii=True, desc='Converting to CSR matrix'):
+            adj[i] = adj[i].tocsr()
+
         ent_n_relations = dict()
         sum_adj = adj[0].copy()
         ent_rel_type = np.full((n_entities, n_relations), True, dtype=np.bool)
@@ -78,5 +90,3 @@ for file in files:
         plt.hist(ent_rel_type, log=True, bins=20)
         plt.title('Entity: Histogram of #edge types\n Min: {}, Max: {}, Mean: {}'.format(np.min(ent_rel_type), np.max(ent_rel_type), round(np.mean(ent_rel_type))))
         plt.show()
-
-
