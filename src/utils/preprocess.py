@@ -1,8 +1,8 @@
+import pickle
 import numpy as np
 from os import path
 import pandas as pd
 from tqdm import tqdm
-import pickle
 import scipy.sparse as sps
 import matplotlib.pyplot as plt
 from collections import defaultdict, OrderedDict
