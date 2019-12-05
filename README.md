@@ -1,1 +1,1 @@
-# IncrementalKG
+# Incremental Knowledge Graph Embedding
