@@ -174,6 +174,7 @@ def drop_nodes(adj, n_nodes):
         print(iter, len(cands), len(nodes))
         if added > 0:
             max_nodes = G.nodes()
+            neg = 0
         else:
             neg += 1
             if last_removed_node.__len__() == 0 and len(nodes) > 1:
