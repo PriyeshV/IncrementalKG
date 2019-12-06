@@ -153,7 +153,7 @@ def drop_nodes(adj, n_nodes):
             cands = np.random.choice(max_nodes, n_cands, replace=False)
         else:
             max_ent_prob = ent_prob[0, max_nodes]
-            max_ent_prob = max_ent_prob.sum() - max_ent_prob
+            # max_ent_prob = max_ent_prob.sum() - max_ent_prob
             max_ent_prob = max_ent_prob / max_ent_prob.sum()
             cands = np.random.choice(max_nodes, n_cands, replace=False, p=max_ent_prob.tolist()[0])
 
