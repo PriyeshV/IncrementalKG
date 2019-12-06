@@ -6,7 +6,7 @@ import networkx as nx
 from tqdm import tqdm
 import scipy.sparse as sps
 import matplotlib.pyplot as plt
-from collections import defaultdict, OrderedDict
+from collections import defaultdict, OrderedDict, deque
 
 
 def prepare_dataset(path_prefix, dataset, files, get_stats=False):
@@ -124,6 +124,7 @@ def prepare_dataset(path_prefix, dataset, files, get_stats=False):
 
                 # TODO: Entity Vs Mean(freq(Relations))
 
+
 def drop_nodes(adj, n_nodes):
     Orig_G = nx.to_networkx_graph(adj)   # undirected graph
     n = adj.shape[0]
@@ -142,6 +143,8 @@ def drop_nodes(adj, n_nodes):
     iter = 0
     neg = 0
     flag = 1
+    last_removed_node = deque(maxlen=5)
+    last_removed_edge = deque(maxlen=5)
     while (len(nodes) < n_nodes) or iter > 2*n_nodes:
         n_cands = 1
         iter += 1
@@ -156,14 +159,14 @@ def drop_nodes(adj, n_nodes):
 
         added = 0
         for node in cands:
-            edges = G.edges(node)
+            edges = list(G.edges(node, data=False))
             G.remove_node(node)
 
             if nx.is_connected(G):
                 nodes.append(node)
                 added += 1
-                last_removed_node = node
-                last_removed_edge = edges
+                last_removed_node.append(node)
+                last_removed_edge.append(edges)
             else:
                 G.add_node(node)
                 G.add_edges_from(edges)
@@ -173,13 +176,18 @@ def drop_nodes(adj, n_nodes):
             max_nodes = G.nodes()
         else:
             neg += 1
+            if last_removed_node.__len__() == 0 and len(nodes) > 1:
+                break
             if neg > 5:
                 print('Switching sampling strategy')
-                G.add_node(last_removed_node)
-                G.add_edges_from(last_removed_edge)
+                G.add_node(last_removed_node.pop())
+                G.add_edges_from(last_removed_edge.pop())
                 flag = 0
             if neg > 10:
+                print('Switching sampling strategy')
                 flag = 1
+                G.add_node(last_removed_node.pop())
+                G.add_edges_from(last_removed_edge.pop())
                 neg = 0
         # n_cands = n_nodes - len(nodes)
     print(exit)
