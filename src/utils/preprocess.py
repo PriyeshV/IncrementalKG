@@ -96,7 +96,7 @@ def prepare_dataset(path_prefix, dataset, files, get_stats=False):
                 plt.title('Relation: Histogram of #edges\n Min: {}, Max: {}, Mean: {}'.format(min(rel_n_edges.values()), max(rel_n_edges.values()), round(np.mean(list(rel_n_edges.values()))), 1))
                 plt.show()
 
-                plt.hist(edge_n_rels.values(), log=True, bins=5)  # axis is scaled in the log space and not the values
+                plt.hist(edge_n_rels.values(), log=True, bins=10)  # axis is scaled in the log space and not the values
                 plt.title('Entity-pair: Histogram of #relations\n Min: {}, Max: {}, Mean: {}'.format(min(edge_n_rels.values()), max(edge_n_rels.values()), round(np.mean(list(edge_n_rels.values()))), 1))
                 plt.show()
 
@@ -128,7 +128,7 @@ def prepare_dataset(path_prefix, dataset, files, get_stats=False):
 def drop_nodes(adj, n_nodes):
     Orig_G = nx.to_networkx_graph(adj)   # undirected graph
     n = adj.shape[0]
-    n_nodes = 100
+    n_nodes = 5000
 
     head_ent = adj.sum(axis=1)
     tail_ent = adj.sum(axis=0)
@@ -139,12 +139,12 @@ def drop_nodes(adj, n_nodes):
     # print('Number of Connected Components: ', nx.number_connected_components(Orig_G))
     max_nodes = list(max(nx.connected_component_subgraphs(Orig_G), key=len).nodes)
     G = max(nx.connected_component_subgraphs(Orig_G), key=len)
-    n_cands = n_nodes
+
     iter = 0
     neg = 0
     flag = 1
-    last_removed_node = deque(maxlen=5)
-    last_removed_edge = deque(maxlen=5)
+    last_removed_node = deque(maxlen=10)
+    last_removed_edge = deque(maxlen=10)
     while (len(nodes) < n_nodes) or iter > 2*n_nodes:
         n_cands = 1
         iter += 1
@@ -180,18 +180,18 @@ def drop_nodes(adj, n_nodes):
             if last_removed_node.__len__() == 0 and len(nodes) > 1:
                 break
             if neg > 5:
-                print('Switching sampling strategy')
+                # print('Switching sampling strategy')
                 G.add_node(last_removed_node.pop())
                 G.add_edges_from(last_removed_edge.pop())
-                flag = 0
+                flag = 1
             if neg > 10:
-                print('Switching sampling strategy')
+                # print('Switching sampling strategy')
                 flag = 1
                 G.add_node(last_removed_node.pop())
                 G.add_edges_from(last_removed_edge.pop())
                 neg = 0
         # n_cands = n_nodes - len(nodes)
-    print(exit)
+    return nodes
     # exit()
 
 
@@ -212,8 +212,9 @@ def remove_nodes(adj, n_nodes):
 path_prefix = '../../Datasets'
 dataset = 'FB20K'
 # # files = ['train', 'val', 'test', 'test_zeroshot']
-# files = ['val']
-# prepare_dataset(path_prefix, dataset, files, get_stats=True)
+files = ['train']
+prepare_dataset(path_prefix, dataset, files, get_stats=True)
+exit()
 
 #  Create Training Data
 fname_suffixes = ['_adj_spslist_b', '_map_ent-id_b', '_map_rel-id_b']
@@ -227,12 +228,17 @@ with open(path.join(*[path_prefix, dataset], file+fname_suffixes[2]+'.pkl'), 'rb
 n_entities = len(entitites)
 n_relations = len(relations)
 
-# Collapsing to singe graph
+# Collapsing to single graph
 sing_adj = adj[0].copy()
 ent_rel_type = np.full((n_entities, n_relations), False, dtype=np.bool)
 for rel in tqdm(relations.keys(), ascii=True, desc='Preparing simple graph'):
     sing_adj += adj[relations[rel]]
 
-remove_nodes(sing_adj, n_nodes=5000)
+set1 = remove_nodes(sing_adj, n_nodes=5000)
+set2 = remove_nodes(sing_adj, n_nodes=5000)
+set3 = remove_nodes(sing_adj, n_nodes=5000)
+
+print(len(set1), len(set2), len(set3))
+print(np.unique([set1, set2, set3]))
 
 
