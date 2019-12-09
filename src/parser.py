@@ -12,7 +12,7 @@ class Parser(object):  #
         parser.add_argument("--dataset", default='Dummy', help="Dataset to evluate | Check Datasets folder",
                             choices=['Dummy', 'FB20K'])
         parser.add_argument("--n_augments", default=5, type=int)
-        parser.add_argument("--gpu", default=-1, help="GPU BUS ID ", type=int)
+        parser.add_argument("--gpu", default=0, help="GPU BUS ID ", type=int)
         parser.add_argument("--gcnKernel", default='rel_gcn', help="kernel names", choices=['rel_gcn'])
 
         # Processing settings
