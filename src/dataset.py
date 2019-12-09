@@ -15,6 +15,7 @@ class Dataset:
         self.n_entities_old = self.n_entities_new - self.n_entities_added
 
         self.n_nodes_batch = config.n_nodes_batch
+        self.n_batches = np.ceil(self.n_entities_added / self.n_nodes_batch).astype(int)
         self.batch_size = config.n_nodes_batch * config.n_data_augments
 
         # self.batch_generator()
@@ -52,8 +53,7 @@ class Dataset:
             node_order = np.arange(self.n_entities_added)
             np.random.shuffle(node_order)
 
-        n_batches = np.ceil(self.n_entities_added/self.n_nodes_batch).astype(int)
-        for batch_id in range(n_batches):
+        for batch_id in range(self.n_batches):
             start = batch_id * self.n_nodes_batch
             end = np.min([(batch_id+1) * self.n_nodes_batch, self.n_entities_added])
             # curr_b_size = end - start
@@ -123,5 +123,13 @@ class Dataset:
             adj_shape = (n_samples, n_samples)
             rel_shape = (n_samples, self.n_relations*len(self.data))
 
-            yield ip_ent_emb, op_ent_emb, mask_new, mask_old, mask_old_neigh, \
+            yield mask_new, mask_old, mask_old_neigh, emb_rel, ip_ent_emb, op_ent_emb,\
                   adj_ind, adj_data, adj_shape, rel_in_ind, rel_in_data, rel_out_ind, rel_out_data, rel_shape
+
+            # adj_mat = tf.SparseTensor(indices=adj_ind, values=adj_data, dense_shape=adj_shape)
+            # rel_in_mat = tf.SparseTensor(indices=rel_in_ind, values=rel_in_data, dense_shape=rel_shape)
+            # rel_out_mat = tf.SparseTensor(indices=rel_out_ind, values=rel_out_data, dense_shape=rel_shape)
+            #
+            # yield mask_new, mask_old, mask_old_neigh, \
+            #       emb_rel, ip_ent_emb, op_ent_emb,\
+            #       adj_mat, rel_in_mat, rel_out_mat
