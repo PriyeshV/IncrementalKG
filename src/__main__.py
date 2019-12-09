@@ -7,6 +7,10 @@ from copy import deepcopy
 from tabulate import tabulate
 import tensorflow as tf
 
+import sys
+sys.path.append('/content/IncrementalKG')
+sys.path.append('/content/IncrementalKG/src')
+
 from src.dataset import Dataset
 from src.parser import Parser
 from src.config import Config
