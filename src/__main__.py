@@ -12,11 +12,12 @@ from src.parser import Parser
 from src.config import Config
 from tensorflow.python.framework import ops
 from src.utils.utils import get_tf_unnormalize_adj
+from src.models.KG_GCN import KG_GCN
 from src.utils.dummy_data import IncrementalDataset
 
 
 tf.compat.v1.disable_eager_execution()
-class KG_GCN(object):
+class Incremental_KG(object):
 
     def __init__(self, dataset):
         self.config = dataset.config
@@ -51,10 +52,10 @@ class KG_GCN(object):
         # Create model and data for the model
         self.data = self.create_tfgraph_data()
 
-        # self.model = self.config.prop_class(self.config, self.data, logging=True, wce=self.config.wce,
-        #                                     multilabel=self.config.multilabel)
-        # self.saver = tf.compat.v1.train.Saver()
-        # self.summary = tf.compat.v1.summary.merge_all()
+        self.model = KG_GCN(self.config, self.data, logging=True)
+
+        self.saver = tf.compat.v1.train.Saver()
+        self.summary = tf.compat.v1.summary.merge_all()
 
     def setup_data_queues(self):
         Q = tf.queue.FIFOQueue(capacity=self.config.queue_capacity,
@@ -98,6 +99,10 @@ class KG_GCN(object):
         data['mask_new'], data['mask_old'], data['mask_old_neigh'], data['emb_rel'], data['ip_ent_emb'], data['op_ent_emb'],
         adj_ind, adj_data, adj_shape, rel_in_ind, rel_in_data, rel_out_ind, rel_out_data, rel_shape) = self.dequeue_op
 
+        data['n_rel'] = tf.shape(data['emb_rel'])[0]
+        data['n_dims'] = tf.shape(data['emb_rel'])[1]
+        data['n_nodes'] = adj_shape[0]
+
         adjmat = tf.SparseTensor(indices=adj_ind, values=adj_data, dense_shape=adj_shape)
         data['adj_deg_out'] = tf.sparse.reduce_sum(adjmat, axis=1)
         data['adj_deg_in'] = tf.sparse.reduce_sum(adjmat, axis=0)
@@ -140,7 +145,7 @@ class KG_GCN(object):
 
     def run_epoch(self, sess, data, learning_rate, summary_writer=None, epoch_id=0, outer_id=0, verbose=1):
         if data == 'train':
-            # train_op = self.model.opt_op
+            train_op = self.model.opt_op
             feed_dict = {self.placeholders['dropout']: self.config.dropout,
                          self.placeholders['lr']: learning_rate,
                          self.placeholders['is_training']: True}
@@ -148,6 +153,7 @@ class KG_GCN(object):
             train_op = tf.no_op()
             feed_dict = {self.placeholders['is_training']: False}
 
+        print('Starting Queue')
         # Start Running Queue
         t = threading.Thread(target=self.load_and_enqueue, args=[sess, data])
         t.daemon = True
@@ -156,9 +162,10 @@ class KG_GCN(object):
         metrics = {}
 
         for step in range(self.dataset.n_batches):
-            mask_new, mask_old, mask_old_neigh = sess.run([self.data['mask_new'], self.data['mask_old'], self.data['mask_old_neigh']], feed_dict=feed_dict)
-            print(len(mask_new), len(mask_old), len(mask_old_neigh))
-
+            # mask_new, mask_old, mask_old_neigh = sess.run([self.data['mask_new'], self.data['mask_old'], self.data['mask_old_neigh']], feed_dict=feed_dict)
+            # print(len(mask_new), len(mask_old), len(mask_old_neigh))
+            loss, _ = sess.run([self.model.loss, self.model.opt_op])
+            print(loss)
 
 
 
@@ -184,6 +191,7 @@ class KG_GCN(object):
         check_for_stop = False
         tot_val = []
 
+        print('starting epoch')
         for epoch_id in range(self.config.max_epochs):
             t_test = time.time()
             tr_metrics = self.run_epoch(sess, 'train', lr, summary_writers['train'], epoch_id=epoch_id, outer_id=0)
@@ -199,11 +207,12 @@ def init_model(config, dataset):
     np.random.seed(1234)
 
     with tf.compat.v1.variable_scope('Graph_Convolutional_Network', reuse=None):
-        model = KG_GCN(dataset)
+        model = Incremental_KG(dataset)
 
     # configure GPU usage
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
     os.environ["CUDA_VISIBLE_DEVICES"] = str(config.gpu)
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
     tf_config = tf.compat.v1.ConfigProto(allow_soft_placement=True)
     tf_config.gpu_options.allow_growth = True
@@ -211,13 +220,18 @@ def init_model(config, dataset):
     tf_config.intra_op_parallelism_threads = 1  # how many threads each op gets
     sm = tf.compat.v1.train.SessionManager()
 
+    print('Got session manager')
     if config.retrain:
         print("Loading model from checkpoint")
         load_ckpt_dir = config.ckpt_dir
     else:
         # print("No model loaded from checkpoint")
         load_ckpt_dir = ''
-    sess = sm.prepare_session("", init_op=model.init, saver=model.saver, checkpoint_dir=load_ckpt_dir, config=tf_config)
+    print('Check point --')
+    # sess = sm.prepare_session("", init_op=model.init, saver=model.saver, checkpoint_dir=load_ckpt_dir, config=tf_config)
+    # sess = sm.prepare_session("", init_op=model.init, saver=model.saver, checkpoint_dir=load_ckpt_dir)
+    sess = sm.prepare_session("", init_op=model.init)
+    print('Session prepared')
     return model, sess
 
 

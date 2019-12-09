@@ -12,13 +12,16 @@ class Parser(object):  #
         parser.add_argument("--dataset", default='Dummy', help="Dataset to evluate | Check Datasets folder",
                             choices=['Dummy', 'FB20K'])
         parser.add_argument("--n_augments", default=5, type=int)
-        parser.add_argument("--gpu", default=0, help="GPU BUS ID ", type=int)
+        parser.add_argument("--gpu", default=-1, help="GPU BUS ID ", type=int)
+        parser.add_argument("--gcnKernel", default='rel_gcn', help="kernel names", choices=['rel_gcn'])
 
         # Processing settings
         parser.add_argument("--n_nodes_batch", default=20, type=int)
         parser.add_argument("--lr", default=1e-2, help="Learning rate", type=float)
         parser.add_argument("--dropout", default=0.5, help="Dropout", type=float,
                             choices=np.round(np.arange(0, 1, 0.05), 2))
+        parser.add_argument("--l2", default=1e-3, help="L2 loss", type=float)
+        parser.add_argument("--bias", default=False, type=self.str2bool)
 
         parser.add_argument("--drop_lr", default=True, help="Drop lr with patience drop", type=self.str2bool)
         parser.add_argument("--pat", default=30, help="Patience", type=int)

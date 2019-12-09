@@ -24,6 +24,13 @@ class Config(object):
         self.max_epochs = 100
         self.learning_rate = args.lr
         self.dropout = args.dropout
+        self.bias = args.bias
+
+        self.max_depth = 2
+        self.l2 = args.l2
+        self.opt = tf.compat.v1.train.AdamOptimizer
+        self.kernel_class = getattr(
+            importlib.import_module("src.layers.graph_convolutions." + args.gcnKernel), "Kernel")
 
         self.paths['datasets'] = path.join(self.paths['root'], 'Datasets')
         self.paths['data'] = path.join(self.paths['datasets'], self.dataset_name)

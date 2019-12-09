@@ -31,7 +31,7 @@ class Dataset:
         return self.config
 
     def get_connected_nodes(self, nodes, degrees, adjlist):
-        max_depth = 2
+        max_depth = self.config.max_depth
         new_nodes = set(range(self.n_entities_added))
         neighbors = [None]*(max_depth+1)
         neighbors[0] = np.asarray(nodes, dtype=int)
@@ -113,8 +113,8 @@ class Dataset:
 
                 # Get Emb data
                 input_emb, output_emb = self.data[data_id].slice_emb(*sg_neighbors)
-                ip_ent_emb = np.concatenate([ip_ent_emb, np.concatenate([ip_ent_emb, np.zeros([n_new_ent, self.emb_dim]), input_emb], axis=0)], axis=0)
-                op_ent_emb = np.concatenate([op_ent_emb, output_emb], axis=0)
+                ip_ent_emb = np.concatenate([ip_ent_emb, np.concatenate([np.zeros([n_new_ent, self.emb_dim]), input_emb], axis=0)], axis=0)
+                op_ent_emb = np.concatenate([op_ent_emb, np.concatenate([input_emb, np.zeros([n_old_neigh_ent, self.emb_dim])], axis=0)], axis=0)
 
                 emb_rel = np.concatenate([emb_rel, self.data[data_id].emb_rel], axis=0)
 
@@ -123,6 +123,7 @@ class Dataset:
             adj_shape = (n_samples, n_samples)
             rel_shape = (n_samples, self.n_relations*len(self.data))
 
+            print('data', batch_id)
             yield mask_new, mask_old, mask_old_neigh, emb_rel, ip_ent_emb, op_ent_emb,\
                   adj_ind, adj_data, adj_shape, rel_in_ind, rel_in_data, rel_out_ind, rel_out_data, rel_shape
 
