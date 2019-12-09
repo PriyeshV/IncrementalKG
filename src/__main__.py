@@ -58,12 +58,12 @@ class Incremental_KG(object):
 
         self.model = KG_GCN(self.config, self.data, logging=True)
 
-        self.saver = tf.compat.v1.train.Saver()
-        self.summary = tf.compat.v1.summary.merge_all()
+        # self.saver = tf.compat.v1.train.Saver()
+        # self.summary = tf.compat.v1.summary.merge_all()
 
     def setup_data_queues(self):
         Q = tf.queue.FIFOQueue(capacity=self.config.queue_capacity,
-                         dtypes=[tf.int64, tf.int64, tf.int64, tf.float32, tf.float32, tf.float32,
+                         dtypes=[tf.bool, tf.bool, tf.bool, tf.float32, tf.float32, tf.float32,
                                  tf.int64, tf.float32, tf.int64, tf.int64, tf.float32, tf.int64, tf.float32, tf.int64])
         keys = self.queue_placeholders_keys
         enqueue_op = Q.enqueue([self.placeholders[key] for key in keys])
@@ -79,9 +79,9 @@ class Incremental_KG(object):
 
     def get_queue_placeholders(self):
         with tf.compat.v1.variable_scope('Queue_placeholders'):
-            self.placeholders['mask_new'] = tf.compat.v1.placeholder(tf.int64, name='mask_new', shape=None)
-            self.placeholders['mask_old'] = tf.compat.v1.placeholder(tf.int64, name='mask_old', shape=None)
-            self.placeholders['mask_old_neigh'] = tf.compat.v1.placeholder(tf.int64, name='mask_old_neigh', shape=None)
+            self.placeholders['mask_new'] = tf.compat.v1.placeholder(tf.bool, name='mask_new', shape=None)
+            self.placeholders['mask_old'] = tf.compat.v1.placeholder(tf.bool, name='mask_old', shape=None)
+            self.placeholders['mask_old_neigh'] = tf.compat.v1.placeholder(tf.bool, name='mask_old_neigh', shape=None)
 
             self.placeholders['emb_rel'] = tf.compat.v1.placeholder(tf.float32, name='emb_rel', shape=[None, None])
             self.placeholders['ip_ent_emb'] = tf.compat.v1.placeholder(tf.float32, name='ip_ent_emb', shape=[None, None])
@@ -166,9 +166,8 @@ class Incremental_KG(object):
         metrics = {}
 
         for step in range(self.dataset.n_batches):
-            # mask_new, mask_old, mask_old_neigh = sess.run([self.data['mask_new'], self.data['mask_old'], self.data['mask_old_neigh']], feed_dict=feed_dict)
-            # print(len(mask_new), len(mask_old), len(mask_old_neigh))
-            loss, _ = sess.run([self.model.loss, self.model.opt_op])
+            # new_ent_emb, bias = sess.run([self.model.new_ent_predictions, self.model.layers[0].vars['bias']], feed_dict=feed_dict)
+            loss, a = sess.run([self.model.loss, self.model.opt_op], feed_dict=feed_dict)
             print(loss)
 
 
@@ -232,12 +231,9 @@ def init_model(config, dataset):
         # print("No model loaded from checkpoint")
         load_ckpt_dir = ''
     print('Check point --')
-    # sess = sm.prepare_session("", init_op=model.init, saver=model.saver, checkpoint_dir=load_ckpt_dir, config=tf_config)
-    # sess = sm.prepare_session("", init_op=model.init, saver=model.saver, checkpoint_dir=load_ckpt_dir)
-    sess = sm.prepare_session("", init_op=model.init)
-    print('Session prepared')
+    sess = sm.prepare_session("", init_op=model.init, saver=model.saver, checkpoint_dir=load_ckpt_dir, config=tf_config)
+    print('got session')
     return model, sess
-
 
 
 def train_model(dataset):

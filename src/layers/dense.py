@@ -18,7 +18,7 @@ class Dense(Layer):
 
         with tf.compat.v1.variable_scope(self.name + '_vars'):
             self.vars['weights'] = tanh_init([input_dim, output_dim], name='weights')
-            self.var_reassign = tf.compat.v1.assign(self.vars['weights'], tanh_init([input_dim, output_dim], name='weights'))
+            self.var_reassign = tf.compat.v1.assign(self.vars['weights'], glorot([input_dim, output_dim], name='weights'))
             if self.bias:
                 self.vars['bias'] = zeros([output_dim], name='bias')
 
@@ -29,10 +29,9 @@ class Dense(Layer):
         x = inputs['activations'][-1]
         x = tf.nn.dropout(x, 1-self.dropout)
 
-        # transform
+        # # transform
         h = dot(x, self.vars['weights'], sparse=False)
 
-        # bias
         if self.bias:
             h += self.vars['bias']
 

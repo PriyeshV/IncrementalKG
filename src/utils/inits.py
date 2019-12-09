@@ -17,6 +17,7 @@ def glorot(shape, name=None, trainable=True):
     """Glorot & Bengio (AISTATS 2010) init."""
     # init_range = np.sqrt(6.0/(shape[0]+shape[1]))
     # initial = tf.random_uniform(shape, minval=-init_range, maxval=init_range, dtype=tf.float32)
+    print('shape:', shape[1])
     init_range = np.sqrt(2.0/(shape[1]))
     shape = tf.cast(shape, tf.int32)
     initial = tf.random.normal(shape, dtype=tf.float32) * init_range
@@ -24,7 +25,7 @@ def glorot(shape, name=None, trainable=True):
 
 
 def tanh_init(shape, name=None, dtype=tf.float32, partition_info=None, trainable=True):
-    init_range = tf.sqrt(6.0/tf.cast(shape[0]+shape[1], dtype=tf.float32))
+    init_range = np.sqrt(6.0/(shape[0]+shape[1]))
     initial = tf.random.uniform(shape, minval=-init_range, maxval=init_range, dtype=tf.float32)
     return tf.Variable(initial, name=name, trainable=trainable)
 

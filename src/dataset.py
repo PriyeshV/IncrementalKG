@@ -10,6 +10,7 @@ class Dataset:
 
         self.data = self.load_data(config)
         self.n_relations, self.emb_dim = self.data[0].emb_rel.shape
+        self.config.emb_dim = self.emb_dim
         self.n_entities_added = self.data[0].n_ent_add
         self.n_entities_new = self.data[0].emb_new_ent.shape[0]
         self.n_entities_old = self.n_entities_new - self.n_entities_added
@@ -74,6 +75,7 @@ class Dataset:
             adj_data, rel_in_data, rel_out_data = [], [], []
 
             n_samples = 0
+            t_old_ent = 0
             for data_id, data in enumerate(self.data):
 
                 sg_neighbors = self.get_connected_nodes(new_ent_ids, self.data[data_id].deg_adj , self.data[data_id].adj.tolil().rows)
@@ -81,6 +83,7 @@ class Dataset:
                 all_nodes = list(itertools.chain.from_iterable(sg_neighbors))
                 n_all_nodes = len(all_nodes)
                 n_old_ent = len(sg_neighbors[1])
+                t_old_ent += n_old_ent
                 n_old_neigh_ent = len(sg_neighbors[2])
 
                 # Mask
@@ -114,7 +117,7 @@ class Dataset:
                 # Get Emb data
                 input_emb, output_emb = self.data[data_id].slice_emb(*sg_neighbors)
                 ip_ent_emb = np.concatenate([ip_ent_emb, np.concatenate([np.zeros([n_new_ent, self.emb_dim]), input_emb], axis=0)], axis=0)
-                op_ent_emb = np.concatenate([op_ent_emb, np.concatenate([input_emb, np.zeros([n_old_neigh_ent, self.emb_dim])], axis=0)], axis=0)
+                op_ent_emb = np.concatenate([op_ent_emb, np.concatenate([output_emb, np.zeros([n_old_neigh_ent, self.emb_dim])], axis=0)], axis=0)
 
                 emb_rel = np.concatenate([emb_rel, self.data[data_id].emb_rel], axis=0)
 
@@ -123,9 +126,8 @@ class Dataset:
             adj_shape = (n_samples, n_samples)
             rel_shape = (n_samples, self.n_relations*len(self.data))
 
-            print('data', batch_id)
             yield mask_new, mask_old, mask_old_neigh, emb_rel, ip_ent_emb, op_ent_emb,\
-                  adj_ind, adj_data, adj_shape, rel_in_ind, rel_in_data, rel_out_ind, rel_out_data, rel_shape
+                  adj_ind, adj_data, adj_shape, rel_in_ind, rel_in_data, rel_out_ind, rel_out_data, rel_shape,
 
             # adj_mat = tf.SparseTensor(indices=adj_ind, values=adj_data, dense_shape=adj_shape)
             # rel_in_mat = tf.SparseTensor(indices=rel_in_ind, values=rel_in_data, dense_shape=rel_shape)
