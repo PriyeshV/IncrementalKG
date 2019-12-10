@@ -60,7 +60,7 @@ if data_creation:
 
     for i in tqdm(range(n_data), ascii=True, desc='Preparing dummy dataset'):
         emb_rel = np.random.rand(n_rel, emb_dim)
-        emb_old_ent= np.random.rand(n_ent_old, emb_dim)
+        emb_old_ent = np.random.rand(n_ent_old, emb_dim)
         emb_new_ent = np.random.rand(n_ent_new, emb_dim)
         emb_data = [emb_rel, emb_old_ent, emb_new_ent]
 
@@ -75,7 +75,6 @@ if data_creation:
         data = IncrementalDataset()
         data.load_data(emb_data, graph_data)
 
-        print(np.isnan(data.emb_new_ent).any())
         with open(path.join(*[path_prefix, dataset], 'train_'+str(i)+'_data_obj_b.pkl'), 'wb') as out:  # dump as binary data
         # with open(path.join(*[path_prefix, dataset], 'test_0_data_obj_b.pkl'), 'wb') as out:  # dump val as binary data
             pickle.dump(data, out, pickle.HIGHEST_PROTOCOL)

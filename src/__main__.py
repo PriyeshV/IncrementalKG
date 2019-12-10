@@ -253,7 +253,7 @@ def main():
     config = Config(args)
     dataset = Dataset(config)
     mse, embeddings = train_model(dataset)
-    
+
 
 if __name__ == "__main__":
     main()
