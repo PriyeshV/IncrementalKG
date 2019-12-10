@@ -34,7 +34,6 @@ class KG_GCN(Model):
         self.new_ent_predictions, self.old_ent_predictions = self.predict()
 
     def _build(self):
-        # TODO Featureless
         self.layers.append(
             Dense(input_dim=self.input_dims, output_dim=self.output_dims, dropout=self.dropouts,
                   act=self.act[0], bias=self.bias, logging=self.logging, model_name=self.name))
@@ -58,26 +57,28 @@ class KG_GCN(Model):
         return new_ent_predictions, old_ent_predictions
 
     def _loss(self):
-        self.loss = 0
+        self.loss = tf.constant(0.)
         new_ent_predictions, old_ent_predictions = self.predict()
-        target_ent = tf.gather(self.data['op_ent_emb'], tf.squeeze(tf.where(self.data['mask_new'])))
+        target_new = tf.gather(self.data['op_ent_emb'], tf.squeeze(tf.where(self.data['mask_new'])))
         target_old = tf.gather(self.data['op_ent_emb'], tf.squeeze(tf.where(self.data['mask_old'])))
 
-        self.target_ent = target_ent
+        self.target_ent = target_new
         self.target_old = target_old
 
         # Squared error loss
-        new_ent_mse = tf.reduce_mean(tf.square(new_ent_predictions - target_ent))   # add entity weigthting
+        new_ent_mse = tf.reduce_mean(tf.square(new_ent_predictions - target_new))   # add entity weigthting
         old_ent_mse = tf.reduce_mean(tf.square(old_ent_predictions - target_old))
         self.mse_loss = new_ent_mse + old_ent_mse
         self.loss += self.mse_loss
 
         # L2 Loss
+        self.l2_loss = tf.constant(0.)
         for v in tf.compat.v1.trainable_variables():
             reject_cands = ['bias']
-            if v.name not in reject_cands:  # and sub_names[2][:7] not in ['weights']:
-                self.loss += self.l2 * tf.nn.l2_loss(v)
-        # self.loss *= self.density
+            name = v.name.split("/")[-1].split(":")[0]
+            if name not in reject_cands:  # and sub_names[2][:7] not in ['weights']:
+                self.l2_loss += tf.nn.l2_loss(v)
+        self.loss += self.l2 * self.l2_loss
         tf.summary.scalar('loss', self.loss)
 
     def _accuracy(self):

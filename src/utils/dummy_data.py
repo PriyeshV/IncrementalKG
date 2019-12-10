@@ -50,11 +50,11 @@ data_creation = False
 data_formatting = False
 
 # Create Raw data
-n_data = 10
+n_data = 1 # 1
 n_rel = 100
 emb_dim = 64
-n_ent_old = 1500
-n_ent_new = 2000
+n_ent_old = 2000
+n_ent_new = 2700  # in new
 
 if data_creation:
 
@@ -75,7 +75,9 @@ if data_creation:
         data = IncrementalDataset()
         data.load_data(emb_data, graph_data)
 
-        with open(path.join(*[path_prefix, dataset], str(i)+'_data_obj_b.pkl'), 'wb') as out:  # dump as binary data
+        print(np.isnan(data.emb_new_ent).any())
+        with open(path.join(*[path_prefix, dataset], 'train_'+str(i)+'_data_obj_b.pkl'), 'wb') as out:  # dump as binary data
+        # with open(path.join(*[path_prefix, dataset], 'test_0_data_obj_b.pkl'), 'wb') as out:  # dump val as binary data
             pickle.dump(data, out, pickle.HIGHEST_PROTOCOL)
 
 # if data_formatting:

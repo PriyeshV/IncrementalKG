@@ -58,8 +58,8 @@ class Incremental_KG(object):
 
         self.model = KG_GCN(self.config, self.data, logging=True)
 
-        # self.saver = tf.compat.v1.train.Saver()
-        # self.summary = tf.compat.v1.summary.merge_all()
+        self.saver = tf.compat.v1.train.Saver()
+        self.summary = tf.compat.v1.summary.merge_all()
 
     def setup_data_queues(self):
         Q = tf.queue.FIFOQueue(capacity=self.config.queue_capacity,
@@ -163,16 +163,18 @@ class Incremental_KG(object):
         t.daemon = True
         t.start()
 
-        metrics = {}
+        loss = 0
+        # train_op = self.model.opt_op
+        for step in range(self.dataset.n_batches[data]):
+            b_loss, b_mse, _ = sess.run([self.model.loss, self.model.l2_loss, train_op], feed_dict=feed_dict)
+            # b_loss, b_mse, pred1, pred2 = sess.run([self.model.loss, self.model.l2_loss, self.model.old_ent_predictions, self.model.new_ent_predictions], feed_dict=feed_dict)
+            # print(np.isnan(pred1).any(), np.isnan(pred2).any())
+            # print(pred1)
+            # exit()
+            print('Batch id: ', step, 'of Batches: ', self.dataset.n_batches[data], ' | Loss: ', b_loss, 'MSE: ', b_mse)
 
-        for step in range(self.dataset.n_batches):
-            # new_ent_emb, bias = sess.run([self.model.new_ent_predictions, self.model.layers[0].vars['bias']], feed_dict=feed_dict)
-            loss, a = sess.run([self.model.loss, self.model.opt_op], feed_dict=feed_dict)
-            print(loss)
-            # deg, _, shape = sess.run([self.data['rel_out_deg'], self.data['rel_shape'], tf.shape(self.data['rel_out_mat'])], feed_dict=feed_dict)
-            # print(deg.shape, shape)
-
-
+            loss += b_loss
+        return loss/self.dataset.n_batches[data]
 
     def fit(self, sess, summary_writers):
         max_epochs = self.config.max_epochs
@@ -180,27 +182,32 @@ class Incremental_KG(object):
         threads = tf.compat.v1.train.start_queue_runners(sess=sess, coord=self.coord)
         epoch_id, tr_metrics, val_metrics, te_metrics = 0, 0, 0, 0
 
-        patience = self.config.patience
-        best_mean_loss = 1e6
-        best_loss = 1e6
-        best_tr_metrics = None
-        best_val_metrics = None
+        # patience = self.config.patience
+        # best_mean_loss = 1e6
+        # best_loss = 1e6
+        # best_tr_metrics = None
+        # best_val_metrics = None
 
-        lr = self.config.learning_rate
-        suffix = ''
-
-        best_epoch = 0
         epoch_id = 0
-        bad_step_id = 0
-        min_run_over = False
-        check_for_stop = False
-        tot_val = []
+        lr = self.config.learning_rate
+
+        # suffix = ''
+        # best_epoch = 0
+        # bad_step_id = 0
+        # min_run_over = False
+        # check_for_stop = False
+        # tot_val = []
 
         print('starting epoch')
+        tr_loss, val_loss = 0, 0
+        # for epoch_id in range(self.config.max_epochs):
         for epoch_id in range(self.config.max_epochs):
             t_test = time.time()
-            tr_metrics = self.run_epoch(sess, 'train', lr, summary_writers['train'], epoch_id=epoch_id, outer_id=0)
-
+            tr_loss = self.run_epoch(sess, 'train', lr, summary_writers['train'])
+            val_loss = self.run_epoch(sess, 'val', lr, summary_writers['val'])
+            val_loss = self.run_epoch(sess, 'test', lr, summary_writers['test'])
+            print('Epoch: ', epoch_id, '||  Training loss: ', tr_loss, '| Validation loss:', val_loss)
+            exit()
         self.coord.request_stop()
         self.coord.join(threads)
         return epoch_id, tr_metrics, val_metrics, te_metrics
