@@ -48,7 +48,6 @@ class Kernels_new(Layer):
             with tf.compat.v1.variable_scope(self.name + "_neighbor_vars_in"):
                 self.weights_neigh['in'] = tanh_init((self.output_dim, self.output_dim), name='weights_in')
 
-
     def compute_features(self, inputs, weights, bias, keys, n_nodes):
             if len(keys) == 0:
                 return tf.zeros(shape=(tf.cast(n_nodes, dtype=tf.int32), self.output_dim))
