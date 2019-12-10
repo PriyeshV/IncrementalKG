@@ -22,6 +22,7 @@ class KG_GCN(Model):
         self.input_dims = config.emb_dim
         self.output_dims = config.emb_dim
 
+        self.dims = [config.emb_dim] * self.n_layers
         self.act = [tf.nn.tanh] * (self.n_layers)
         self.act.append(lambda x: x)
         self.conv_layer = config.kernel_class
@@ -37,13 +38,16 @@ class KG_GCN(Model):
         self.layers.append(
             Dense(input_dim=self.input_dims, output_dim=self.output_dims, dropout=self.dropouts,
                   act=self.act[0], bias=self.bias, logging=self.logging, model_name=self.name))
-        #
 
+        self.data['h_rel_out'] = tf.compat.v1.sparse_tensor_dense_matmul(self.data['rel_out_mat'], self.data['emb_rel'])
+        self.data['h_rel_in'] = tf.compat.v1.sparse_tensor_dense_matmul(self.data['rel_in_mat'], self.data['emb_rel'])
+
+        for i in range(1):
         # for i in range(self.n_layers):
-        #     self.layers.append(self.conv_layer(layer_id=i, x_names=self.feature_names, dims=self.input_dims,
-        #                                        dropout=self.dropouts, act=self.act[i], bias=self.bias,
-        #                                        shared_weights=False, skip_connection=True,
-        #                                        logging=self.logging, model_name=self.name))
+            self.layers.append(self.conv_layer(layer_id=i, x_names=['x', 'h'], adj_name='adj_out', dims=self.dims,
+                                               dropout=self.dropouts, act=self.act[i], bias=self.bias,
+                                               shared_weights=False, skip_connection=True,
+                                               logging=self.logging, model_name=self.name))
 
         self.layers.append(
             Dense(input_dim=self.input_dims, output_dim=self.output_dims, dropout=self.dropouts,

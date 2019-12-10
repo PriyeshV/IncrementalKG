@@ -1,12 +1,12 @@
 import tensorflow as tf
 from src.layers.layer import Layer
-from src.utils.inits import glorot, const
+from src.utils.inits import glorot, const, tanh_init
 from src.utils.utils import dot
 
 
 class Kernels_new(Layer):
 
-    def __init__(self, layer_id, x_names, dims, dropout, act=tf.nn.relu, sparse_inputs=False,
+    def __init__(self, layer_id, x_names, adj_name, dims, dropout, act=tf.nn.relu, sparse_inputs=False,
                  bias=False, shared_weights=True, skip_connection=True, weights=True, **kwargs):
         super(Kernels_new, self).__init__(**kwargs)
 
@@ -24,18 +24,11 @@ class Kernels_new(Layer):
         self.g0 = None
         self.g1 = None
 
+        self.adj_name = adj_name
         self.node_feautures = x_names[0]
         self.neighbor_features = x_names[1]
 
         # Weights initialization
-        self.input_dims = {}
-        # Initially 'x' and 'h' save same input
-        if self.layer_id == 0 and self.m_name != '':
-            self.input_dims['x'] = dims[0]
-        else:
-            self.input_dims['x'] = dims[1]
-
-        self.input_dims['h'] = dims[layer_id]
         self.output_dim = dims[layer_id+1]
 
         self.node_dims = 0
@@ -44,33 +37,17 @@ class Kernels_new(Layer):
         if self.bias:
             self.vars['bias'] = const([self.output_dim])
 
-        # Compute total dimensions
-        for key in self.node_feautures:
-            self.node_dims += self.input_dims[key]
-        for key in self.neighbor_features:
-            self.neigh_dims += self.input_dims[key]
-
         self.weights_node = {}
         self.bias_node = None
         self.weights_neigh = {}
         self.bias_neigh = None
 
         if weights:
-            if not shared_weights:
-                # Neigh weights
-                with tf.compat.v1.variable_scope(self.name + "_neighbor_vars"):
-                    keys = self.neighbor_features
-                    for key in keys:
-                        self.weights_neigh[key] = glorot((self.input_dims[key], self.output_dim), name=key + 'weights')
+            with tf.compat.v1.variable_scope(self.name + "_neighbor_vars_out"):
+                self.weights_neigh['out'] = tanh_init((self.output_dim, self.output_dim), name='weights_out')
+            with tf.compat.v1.variable_scope(self.name + "_neighbor_vars_in"):
+                self.weights_neigh['in'] = tanh_init((self.output_dim, self.output_dim), name='weights_in')
 
-            # Node weights
-            with tf.compat.v1.variable_scope(self.name + "_node_vars"):
-                if shared_weights:
-                    keys = self.node_feautures + list(set(self.neighbor_features) - set(self.node_feautures))
-                else:
-                    keys = self.node_feautures
-                for key in keys:
-                    self.weights_node[key] = glorot((self.input_dims[key], self.output_dim), name=key+'weights')
 
     def compute_features(self, inputs, weights, bias, keys, n_nodes):
             if len(keys) == 0:

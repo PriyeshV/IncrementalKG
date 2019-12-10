@@ -20,7 +20,7 @@ class Config(object):
         self.n_nodes_batch = args.n_nodes_batch
 
         self.gpu = args.gpu
-        self.queue_capacity = 5
+        self.queue_capacity = 1
         self.max_epochs = 100
         self.learning_rate = args.lr
         self.dropout = args.dropout

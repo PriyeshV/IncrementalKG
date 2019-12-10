@@ -42,7 +42,7 @@ class Dataset:
             for n in neighbors[h-1]:
                 if degrees[n] > 0:
                     new_k.update(adjlist[n])
-            # new_k = new_k - all_nodes
+            new_k = new_k - all_nodes
             new_k = new_k - new_nodes
             neighbors[h] = np.asarray(list(new_k), dtype=int)
             all_nodes.update(new_k)
@@ -62,7 +62,6 @@ class Dataset:
             new_ent_ids = list(node_order[start:end])
             n_new_ent = end - start
 
-            # mask_new = np.zeros([0, 1], dtype=bool)
             mask_new = []
             mask_old = []
             mask_old_neigh = []
@@ -105,22 +104,22 @@ class Dataset:
                 adj_data = np.concatenate([adj_data, G.data], axis=0)
 
                 G = graphs[1].tocoo()
-                ind = np.vstack([G.row, G.col]) + n_samples
+                ind = np.vstack([G.row + n_samples, G.col + self.n_relations])
                 rel_in_ind = np.concatenate([rel_in_ind, ind.T], axis=0)
                 rel_in_data = np.concatenate([rel_in_data, G.data], axis=0)
 
                 G = graphs[2].tocoo()
-                ind = np.vstack([G.row, G.col]) + n_samples
+                ind = np.vstack([G.row + n_samples, G.col + self.n_relations])
                 rel_out_ind = np.concatenate([rel_out_ind, ind.T], axis=0)
                 rel_out_data = np.concatenate([rel_out_data, G.data], axis=0)
 
                 # Get Emb data
                 input_emb, output_emb = self.data[data_id].slice_emb(*sg_neighbors)
+                emb_rel = np.concatenate([emb_rel, self.data[data_id].emb_rel], axis=0)
                 ip_ent_emb = np.concatenate([ip_ent_emb, np.concatenate([np.zeros([n_new_ent, self.emb_dim]), input_emb], axis=0)], axis=0)
                 op_ent_emb = np.concatenate([op_ent_emb, np.concatenate([output_emb, np.zeros([n_old_neigh_ent, self.emb_dim])], axis=0)], axis=0)
 
-                emb_rel = np.concatenate([emb_rel, self.data[data_id].emb_rel], axis=0)
-
+                # update total n_samples in this batch
                 n_samples += n_all_nodes
 
             adj_shape = (n_samples, n_samples)
@@ -128,11 +127,3 @@ class Dataset:
 
             yield mask_new, mask_old, mask_old_neigh, emb_rel, ip_ent_emb, op_ent_emb,\
                   adj_ind, adj_data, adj_shape, rel_in_ind, rel_in_data, rel_out_ind, rel_out_data, rel_shape,
-
-            # adj_mat = tf.SparseTensor(indices=adj_ind, values=adj_data, dense_shape=adj_shape)
-            # rel_in_mat = tf.SparseTensor(indices=rel_in_ind, values=rel_in_data, dense_shape=rel_shape)
-            # rel_out_mat = tf.SparseTensor(indices=rel_out_ind, values=rel_out_data, dense_shape=rel_shape)
-            #
-            # yield mask_new, mask_old, mask_old_neigh, \
-            #       emb_rel, ip_ent_emb, op_ent_emb,\
-            #       adj_mat, rel_in_mat, rel_out_mat

@@ -101,24 +101,24 @@ class Incremental_KG(object):
         data = {}
         (
         data['mask_new'], data['mask_old'], data['mask_old_neigh'], data['emb_rel'], data['ip_ent_emb'], data['op_ent_emb'],
-        adj_ind, adj_data, adj_shape, rel_in_ind, rel_in_data, rel_out_ind, rel_out_data, rel_shape) = self.dequeue_op
+        adj_ind, adj_data, adj_shape, rel_in_ind, rel_in_data, rel_out_ind, rel_out_data, data['rel_shape']) = self.dequeue_op
 
         data['n_rel'] = tf.shape(data['emb_rel'])[0]
         data['n_dims'] = tf.shape(data['emb_rel'])[1]
         data['n_nodes'] = adj_shape[0]
 
         adjmat = tf.SparseTensor(indices=adj_ind, values=adj_data, dense_shape=adj_shape)
-        data['adj_deg_out'] = tf.sparse.reduce_sum(adjmat, axis=1)
-        data['adj_deg_in'] = tf.sparse.reduce_sum(adjmat, axis=0)
-        data['adj_out_mat'] = get_tf_unnormalize_adj(adjmat, data['adj_deg_out'])
-        data['adj_in_mat'] = get_tf_unnormalize_adj(tf.sparse.transpose(adjmat, [1, 0]), data['adj_deg_in'])
+        data['adj_out_deg'] = tf.sparse.reduce_sum(adjmat, axis=1, keepdims=True)
+        data['adj_in_deg'] = tf.sparse.reduce_sum(adjmat, axis=0, keepdims=True)
+        data['adj_out_mat'] = get_tf_unnormalize_adj(adjmat, data['adj_out_deg'])
+        data['adj_in_mat'] = get_tf_unnormalize_adj(tf.sparse.transpose(adjmat, [1, 0]), data['adj_in_deg'])
 
-        data['rel_in_mat'] = tf.SparseTensor(indices=rel_in_ind, values=rel_in_data, dense_shape=rel_shape)
-        data['rel_in_deg'] = tf.sparse.reduce_sum(data['rel_in_mat'], axis=1)
+        data['rel_in_mat'] = tf.SparseTensor(indices=rel_in_ind, values=rel_in_data, dense_shape=data['rel_shape'])
+        data['rel_in_deg'] = tf.sparse.reduce_sum(data['rel_in_mat'], axis=1, keepdims=True)
         data['rel_in_mat'] = get_tf_unnormalize_adj(data['rel_in_mat'], data['rel_in_deg'])
 
-        data['rel_out_mat'] = tf.SparseTensor(indices=rel_out_ind, values=rel_out_data, dense_shape=rel_shape)
-        data['rel_out_deg'] = tf.sparse.reduce_sum(data['rel_out_mat'], axis=1)
+        data['rel_out_mat'] = tf.SparseTensor(indices=rel_out_ind, values=rel_out_data, dense_shape=data['rel_shape'])
+        data['rel_out_deg'] = tf.sparse.reduce_sum(data['rel_out_mat'], axis=1, keepdims=True)
         data['rel_out_mat'] = get_tf_unnormalize_adj(data['rel_out_mat'], data['rel_out_deg'])
 
         data['dropout'] = self.placeholders['dropout']
@@ -169,6 +169,8 @@ class Incremental_KG(object):
             # new_ent_emb, bias = sess.run([self.model.new_ent_predictions, self.model.layers[0].vars['bias']], feed_dict=feed_dict)
             loss, a = sess.run([self.model.loss, self.model.opt_op], feed_dict=feed_dict)
             print(loss)
+            # deg, _, shape = sess.run([self.data['rel_out_deg'], self.data['rel_shape'], tf.shape(self.data['rel_out_mat'])], feed_dict=feed_dict)
+            # print(deg.shape, shape)
 
 
 
