@@ -157,7 +157,6 @@ class Incremental_KG(object):
             train_op = tf.no_op()
             feed_dict = {self.placeholders['is_training']: False}
 
-        print('Starting Queue')
         # Start Running Queue
         t = threading.Thread(target=self.load_and_enqueue, args=[sess, data])
         t.daemon = True
@@ -166,14 +165,9 @@ class Incremental_KG(object):
         loss = 0
         # train_op = self.model.opt_op
         for step in range(self.dataset.n_batches[data]):
-            b_loss, b_mse, _ = sess.run([self.model.loss, self.model.l2_loss, train_op], feed_dict=feed_dict)
-            # b_loss, b_mse, pred1, pred2 = sess.run([self.model.loss, self.model.l2_loss, self.model.old_ent_predictions, self.model.new_ent_predictions], feed_dict=feed_dict)
-            # print(np.isnan(pred1).any(), np.isnan(pred2).any())
-            # print(pred1)
-            # exit()
-            print('Batch id: ', step, 'of Batches: ', self.dataset.n_batches[data], ' | Loss: ', b_loss, 'MSE: ', b_mse)
-
-            loss += b_loss
+            b_mse, _ = sess.run([self.model.mse_loss, train_op], feed_dict=feed_dict)
+            # print('Batch id: ', step, 'of Batches: ', self.dataset.n_batches[data], ' | Loss: ', b_loss, 'MSE: ', b_mse)
+            loss += b_mse
         return loss/self.dataset.n_batches[data]
 
     def fit(self, sess, summary_writers):
@@ -198,16 +192,17 @@ class Incremental_KG(object):
         # check_for_stop = False
         # tot_val = []
 
-        print('starting epoch')
-        tr_loss, val_loss = 0, 0
+        tr_loss, val_loss = [], []
         # for epoch_id in range(self.config.max_epochs):
         for epoch_id in range(self.config.max_epochs):
-            t_test = time.time()
-            tr_loss = self.run_epoch(sess, 'train', lr, summary_writers['train'])
-            val_loss = self.run_epoch(sess, 'val', lr, summary_writers['val'])
-            val_loss = self.run_epoch(sess, 'test', lr, summary_writers['test'])
-            print('Epoch: ', epoch_id, '||  Training loss: ', tr_loss, '| Validation loss:', val_loss)
-            exit()
+            tr_op = self.run_epoch(sess, 'train', lr, summary_writers['train'])
+            val_op = self.run_epoch(sess, 'val', lr, summary_writers['val'])
+            tr_loss.append(tr_op)
+            val_loss.append(val_op)
+            print('Epoch: ', epoch_id, '||  Train loss: ', tr_loss[epoch_id], '| Val loss:', val_loss[epoch_id])
+        test_loss = self.run_epoch(sess, 'test', lr, summary_writers['test'])
+        print('Epoch: ', epoch_id, '||  Train loss: ', tr_loss[epoch_id], '| Val loss:', val_loss[epoch_id],
+              '| Test loss:', test_loss)
         self.coord.request_stop()
         self.coord.join(threads)
         return epoch_id, tr_metrics, val_metrics, te_metrics
@@ -239,9 +234,7 @@ def init_model(config, dataset):
     else:
         # print("No model loaded from checkpoint")
         load_ckpt_dir = ''
-    print('Check point --')
     sess = sm.prepare_session("", init_op=model.init, saver=model.saver, checkpoint_dir=load_ckpt_dir, config=tf_config)
-    print('got session')
     return model, sess
 
 

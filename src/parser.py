@@ -23,6 +23,7 @@ class Parser(object):  #
         parser.add_argument("--l2", default=1e-3, help="L2 loss", type=float)
         parser.add_argument("--bias", default=True, type=self.str2bool)
 
+        parser.add_argument("--max_epochs", default=50, help="Max epochs", type=int)
         parser.add_argument("--drop_lr", default=True, help="Drop lr with patience drop", type=self.str2bool)
         parser.add_argument("--pat", default=30, help="Patience", type=int)
         parser.add_argument("--save_after", default=50, help="Save after epochs", type=int)
