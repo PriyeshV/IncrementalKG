@@ -32,6 +32,10 @@ class Dataset:
                 self.n_batches[file] = np.ceil(self.n_entities_added[file] / self.n_nodes_batch).astype(int)
                 self.batch_size[file] = self.config.n_nodes_batch * self.config.n_data_augments
 
+                if file == 'test':
+                    self.n_batches[file] = 1
+                    self.batch_size[file] = self.n_entities_added[file]
+
                 if file == 'train':
                     self.n_relations, self.emb_dim = data.emb_rel.shape
                     self.config.emb_dim = self.emb_dim
@@ -65,22 +69,25 @@ class Dataset:
         return neighbors
 
     def batch_generator(self, file='train', shuffle=True):
+        n_nodes_batch = self.n_nodes_batch
+        n_batches = self.n_batches[file]
+        if file == 'test':
+            n_nodes_batch = self.n_entities_added['test']
+            n_batches = 1
 
         dataset = self.load_data(file)
-        # Get n_batches
-        # n_sets = self.n_sets[data]
-
+        node_order = np.arange(self.n_entities_added[file])
         if shuffle:
             node_order = np.arange(self.n_entities_added[file])
             np.random.shuffle(node_order)
 
-        for batch_id in range(self.n_batches[file]):
-            start = batch_id * self.n_nodes_batch
-            end = np.min([(batch_id+1) * self.n_nodes_batch, self.n_entities_added[file]])
-            # curr_b_size = end - start
+        for batch_id in range(n_batches):
+            start = batch_id * n_nodes_batch
+            end = np.min([(batch_id+1) * n_nodes_batch, self.n_entities_added[file]])
 
-            new_ent_ids = list(node_order[start:end])
             n_new_ent = end - start
+            new_ent_ids = list(node_order[start:end])
+            old_ent_ids = []
 
             mask_new = []
             mask_old = []
@@ -99,6 +106,7 @@ class Dataset:
             for data_id, data in enumerate(dataset):
 
                 sg_neighbors = self.get_connected_nodes(file, new_ent_ids, dataset[data_id].deg_adj, dataset[data_id].adj.tolil().rows)
+                old_ent_ids.append(sg_neighbors[1])
 
                 all_nodes = list(itertools.chain.from_iterable(sg_neighbors))
                 n_all_nodes = len(all_nodes)
@@ -147,5 +155,5 @@ class Dataset:
             adj_shape = (n_samples, n_samples)
             rel_shape = (n_samples, self.n_relations*len(dataset))
 
-            yield mask_new, mask_old, mask_old_neigh, emb_rel, ip_ent_emb, op_ent_emb,\
+            yield new_ent_ids, old_ent_ids, mask_new, mask_old, mask_old_neigh, emb_rel, ip_ent_emb, op_ent_emb,\
                   adj_ind, adj_data, adj_shape, rel_in_ind, rel_in_data, rel_out_ind, rel_out_data, rel_shape,

@@ -45,7 +45,7 @@ class Incremental_KG(object):
     def setup_arch(self):
         # Setup place_holders
         self.placeholders = {}
-        self.queue_placeholders_keys = ['mask_new', 'mask_old', 'mask_old_neigh', 'emb_rel', 'ip_ent_emb', 'op_ent_emb',\
+        self.queue_placeholders_keys = ['new_ent_ids', 'old_ent_ids', 'mask_new', 'mask_old', 'mask_old_neigh', 'emb_rel', 'ip_ent_emb', 'op_ent_emb',\
                   'adj_ind', 'adj_data', 'adj_shape', 'rel_in_ind', 'rel_in_data', 'rel_out_ind', 'rel_out_data', 'rel_shape']
 
         self.get_placeholders()
@@ -79,6 +79,9 @@ class Incremental_KG(object):
 
     def get_queue_placeholders(self):
         with tf.compat.v1.variable_scope('Queue_placeholders'):
+            self.placeholders['new_ent_ids'] = tf.compat.v1.placeholder(tf.int64, name='new_ent_ids', shape=None)
+            self.placeholders['old_ent_ids'] = tf.compat.v1.placeholder(tf.int64, name='old_ent_ids', shape=None)
+
             self.placeholders['mask_new'] = tf.compat.v1.placeholder(tf.bool, name='mask_new', shape=None)
             self.placeholders['mask_old'] = tf.compat.v1.placeholder(tf.bool, name='mask_old', shape=None)
             self.placeholders['mask_old_neigh'] = tf.compat.v1.placeholder(tf.bool, name='mask_old_neigh', shape=None)
@@ -100,8 +103,9 @@ class Incremental_KG(object):
     def create_tfgraph_data(self):
         data = {}
         (
-        data['mask_new'], data['mask_old'], data['mask_old_neigh'], data['emb_rel'], data['ip_ent_emb'], data['op_ent_emb'],
-        adj_ind, adj_data, adj_shape, rel_in_ind, rel_in_data, rel_out_ind, rel_out_data, data['rel_shape']) = self.dequeue_op
+        data['new_ent_id'], data['old_ent_ids'], data['mask_new'], data['mask_old'], data['mask_old_neigh'],
+        data['emb_rel'], data['ip_ent_emb'], data['op_ent_emb'], adj_ind, adj_data, adj_shape,
+        rel_in_ind, rel_in_data, rel_out_ind, rel_out_data, data['rel_shape']) = self.dequeue_op
 
         data['n_rel'] = tf.shape(data['emb_rel'])[0]
         data['n_dims'] = tf.shape(data['emb_rel'])[1]
@@ -147,7 +151,19 @@ class Incremental_KG(object):
             feed_dict[self.placeholders[key]] = sources[i]
         return feed_dict
 
-    def run_epoch(self, sess, data, learning_rate, summary_writer=None, epoch_id=0, outer_id=0, verbose=1):
+    def get_embedding(self, sess, data='test'):
+        feed_dict = {self.placeholders['is_training']: False}
+
+        # Start Running Queue
+        t = threading.Thread(target=self.load_and_enqueue, args=[sess, data])
+        t.daemon = True
+        t.start()
+
+        embeddings = {}
+        loss, embeddings['new_ent_ids'], embeddings['old_ent_ids'], embeddings['ent_new'], embeddings['ent_old'] = sess.run([self.model.loss, self.data['new_ent_ids'], self.data['old_ent_ids'], self.model.new_ent_predictions, self.model.old_ent_predictions], feed_dict=feed_dict)
+        return loss, embeddings
+
+    def run_epoch(self, sess, data, learning_rate=0, summary_writers=None):
         if data == 'train':
             train_op = self.model.opt_op
             feed_dict = {self.placeholders['dropout']: self.config.dropout,
@@ -163,7 +179,6 @@ class Incremental_KG(object):
         t.start()
 
         loss = 0
-        # train_op = self.model.opt_op
         for step in range(self.dataset.n_batches[data]):
             b_mse, _ = sess.run([self.model.mse_loss, train_op], feed_dict=feed_dict)
             # print('Batch id: ', step, 'of Batches: ', self.dataset.n_batches[data], ' | Loss: ', b_loss, 'MSE: ', b_mse)
@@ -171,41 +186,22 @@ class Incremental_KG(object):
         return loss/self.dataset.n_batches[data]
 
     def fit(self, sess, summary_writers):
-        max_epochs = self.config.max_epochs
         sess.run(tf.compat.v1.local_variables_initializer())
         threads = tf.compat.v1.train.start_queue_runners(sess=sess, coord=self.coord)
-        epoch_id, tr_metrics, val_metrics, te_metrics = 0, 0, 0, 0
-
-        # patience = self.config.patience
-        # best_mean_loss = 1e6
-        # best_loss = 1e6
-        # best_tr_metrics = None
-        # best_val_metrics = None
 
         epoch_id = 0
         lr = self.config.learning_rate
 
-        # suffix = ''
-        # best_epoch = 0
-        # bad_step_id = 0
-        # min_run_over = False
-        # check_for_stop = False
-        # tot_val = []
-
         tr_loss, val_loss = [], []
-        # for epoch_id in range(self.config.max_epochs):
         for epoch_id in range(self.config.max_epochs):
             tr_op = self.run_epoch(sess, 'train', lr, summary_writers['train'])
             val_op = self.run_epoch(sess, 'val', lr, summary_writers['val'])
             tr_loss.append(tr_op)
             val_loss.append(val_op)
             print('Epoch: ', epoch_id, '||  Train loss: ', tr_loss[epoch_id], '| Val loss:', val_loss[epoch_id])
-        test_loss = self.run_epoch(sess, 'test', lr, summary_writers['test'])
-        print('Epoch: ', epoch_id, '||  Train loss: ', tr_loss[epoch_id], '| Val loss:', val_loss[epoch_id],
-              '| Test loss:', test_loss)
         self.coord.request_stop()
         self.coord.join(threads)
-        return epoch_id, tr_metrics, val_metrics, te_metrics
+        return epoch_id, tr_loss, val_loss
 
 
 def init_model(config, dataset):
@@ -227,7 +223,6 @@ def init_model(config, dataset):
     tf_config.intra_op_parallelism_threads = 1  # how many threads each op gets
     sm = tf.compat.v1.train.SessionManager()
 
-    print('Got session manager')
     if config.retrain:
         print("Loading model from checkpoint")
         load_ckpt_dir = config.ckpt_dir
@@ -242,9 +237,10 @@ def train_model(dataset):
     config = deepcopy(dataset.get_config())
     model, sess = init_model(config, dataset)
     summary_writers = model.add_summaries(sess)
-    n_epochs, tr_metrics, val_metrics, te_metrics = model.fit(sess, summary_writers)
-    results = 0
-    return results
+    n_epochs, tr_loss, val_loss = model.fit(sess, summary_writers)
+    test_loss, embeddings = model.get_embedding(sess, data='test')
+    print('N_epochs: ', n_epochs, '| Train loss: ', tr_loss[-1], '| Val loss:', val_loss[-1], '| Test loss:', test_loss)
+    return test_loss, embeddings
 
 
 
@@ -256,8 +252,8 @@ def main():
     # Load Configuration and data
     config = Config(args)
     dataset = Dataset(config)
-
-    results = train_model(dataset)
+    mse, embeddings = train_model(dataset)
+    
 
 if __name__ == "__main__":
     main()

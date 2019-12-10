@@ -21,7 +21,7 @@ class Config(object):
 
         self.gpu = args.gpu
         self.queue_capacity = 1
-        self.max_epochs = 100
+        self.max_epochs = args.max_epochs
         self.learning_rate = args.lr
         self.dropout = args.dropout
         self.bias = args.bias
