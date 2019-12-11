@@ -63,7 +63,7 @@ class Incremental_KG(object):
 
     def setup_data_queues(self):
         Q = tf.queue.FIFOQueue(capacity=self.config.queue_capacity,
-                         dtypes=[tf.bool, tf.bool, tf.bool, tf.float32, tf.float32, tf.float32,
+                         dtypes=[tf.int64, tf.int64, tf.bool, tf.bool, tf.bool, tf.float32, tf.float32, tf.float32,
                                  tf.int64, tf.float32, tf.int64, tf.int64, tf.float32, tf.int64, tf.float32, tf.int64])
         keys = self.queue_placeholders_keys
         enqueue_op = Q.enqueue([self.placeholders[key] for key in keys])

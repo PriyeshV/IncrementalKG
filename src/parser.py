@@ -2,14 +2,12 @@ import argparse
 import numpy as np
 from datetime import datetime
 
-
-# TODO # Negative Contraints
 class Parser(object):  #
     def __init__(self):
         parser = argparse.ArgumentParser()
 
         # Dataset settings
-        parser.add_argument("--dataset", default='Dummy', help="Dataset to evluate | Check Datasets folder",
+        parser.add_argument("--dataset", default='gcnDataset', help="Dataset to evluate | Check Datasets folder",
                             choices=['Dummy', 'FB20K'])
         parser.add_argument("--n_augments", default=5, type=int)
         parser.add_argument("--gpu", default=0, help="GPU BUS ID ", type=int)

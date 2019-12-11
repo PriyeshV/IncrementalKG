@@ -46,7 +46,7 @@ class IncrementalDataset:
 
 path_prefix = '../../Datasets'
 dataset = 'gcnDataset'
-data_creation = True
+data_creation = False
 data_formatting = False
 
 # Create Raw data

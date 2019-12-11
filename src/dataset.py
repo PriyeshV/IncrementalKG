@@ -16,7 +16,7 @@ class Dataset:
         self.initalize_vars()
         # Automatic compute this from data directory
         self.n_sets = {}
-        self.n_sets['train'] = 10
+        self.n_sets['train'] = 1
         self.n_sets['val'] = 1
         self.n_sets['test'] = 1
 
@@ -154,6 +154,9 @@ class Dataset:
 
             adj_shape = (n_samples, n_samples)
             rel_shape = (n_samples, self.n_relations*len(dataset))
+
+            new_ent_ids = np.array(new_ent_ids, dtype=int)
+            old_ent_ids = np.unique(np.hstack(old_ent_ids))
 
             yield new_ent_ids, old_ent_ids, mask_new, mask_old, mask_old_neigh, emb_rel, ip_ent_emb, op_ent_emb,\
                   adj_ind, adj_data, adj_shape, rel_in_ind, rel_in_data, rel_out_ind, rel_out_data, rel_shape,
