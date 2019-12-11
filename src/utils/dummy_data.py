@@ -64,7 +64,7 @@ if data_creation:
 		# emb_new_ent = np.random.rand(n_ent_new, emb_dim)
 		# emb_data = [emb_rel, emb_old_ent, emb_new_ent]
 		# folder=filepath+'train'+str(i+1)+'/'
-		folder=filepath+'val/'
+		folder=filepath+'test/'
 
 		emb_rel = np.load(folder+'rel_emb.npy')
 		emb_old_ent = np.load(folder+'old_ent_emb.npy')
@@ -89,7 +89,7 @@ if data_creation:
 		data.load_data(emb_data, graph_data)
 
 		# with open(path.join(*[path_prefix, dataset], 'train_'+str(i)+'_data_obj_b.pkl'), 'wb') as out:  # dump as binary data
-		with open(path.join(*[path_prefix, dataset], 'val_0_data_obj_b.pkl'), 'wb') as out:  # dump val as binary data
+		with open(path.join(*[path_prefix, dataset], 'test_0_data_obj_b.pkl'), 'wb') as out:  # dump val as binary data
 			pickle.dump(data, out, pickle.HIGHEST_PROTOCOL)
 
 # if data_formatting:
