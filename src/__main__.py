@@ -210,8 +210,8 @@ class Incremental_KG(object):
                 with open(self.config.paths['embed']+'_'+str(epoch_id)+'_emb.pkl', 'wb') as out:
                     pickle.dump(embeddings, out, pickle.HIGHEST_PROTOCOL)
                 print('Epoch: ', epoch_id, '######  Train New MSE: ', tr_loss[-1][1], '- Test New MSE:',
-                      te_loss[1], '||  Train Old MSE: ', tr_loss[-1][2], '- Val Old MSE:', te_loss[2],
-                      '||  Train loss: ', tr_loss[-1][0], '- Val loss:', te_loss[0])
+                      te_loss[1], '||  Train Old MSE: ', tr_loss[-1][2], '- Test Old MSE:', te_loss[2],
+                      '||  Train loss: ', tr_loss[-1][0], '- Test loss:', te_loss[0])
             else:
                 val_op = self.run_epoch(sess, 'val', lr, summary_writers['val'])
                 val_loss.append(val_op)
