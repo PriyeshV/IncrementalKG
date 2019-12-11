@@ -14,14 +14,14 @@ class Parser(object):  #
         parser.add_argument("--gcnKernel", default='rel_gcn', help="kernel names", choices=['rel_gcn'])
 
         # Processing settings
-        parser.add_argument("--n_nodes_batch", default=20, type=int)
+        parser.add_argument("--n_nodes_batch", default=50, type=int)
         parser.add_argument("--lr", default=1e-2, help="Learning rate", type=float)
         parser.add_argument("--dropout", default=0.5, help="Dropout", type=float,
                             choices=np.round(np.arange(0, 1, 0.05), 2))
         parser.add_argument("--l2", default=1e-3, help="L2 loss", type=float)
         parser.add_argument("--bias", default=True, type=self.str2bool)
 
-        parser.add_argument("--max_epochs", default=5, help="Max epochs", type=int)
+        parser.add_argument("--max_epochs", default=11, help="Max epochs", type=int)
         parser.add_argument("--drop_lr", default=True, help="Drop lr with patience drop", type=self.str2bool)
         parser.add_argument("--pat", default=30, help="Patience", type=int)
         parser.add_argument("--save_after", default=50, help="Save after epochs", type=int)

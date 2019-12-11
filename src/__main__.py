@@ -1,5 +1,6 @@
 import os
 import time
+import pickle
 import threading
 import numpy as np
 from os import path
@@ -181,7 +182,7 @@ class Incremental_KG(object):
         loss = 0
         for step in range(self.dataset.n_batches[data]):
             b_mse, b_loss, _ = sess.run([self.model.mse_loss, self.model.loss, train_op], feed_dict=feed_dict)
-            print('Batch id: ', step, 'of Batches: ', self.dataset.n_batches[data], ' | Loss: ', b_loss, 'MSE: ', b_mse)
+            # print('Batch id: ', step, 'of Batches: ', self.dataset.n_batches[data], ' | Loss: ', b_loss, 'MSE: ', b_mse)
             loss += b_mse
         return loss/self.dataset.n_batches[data]
 
@@ -199,6 +200,13 @@ class Incremental_KG(object):
             tr_loss.append(tr_op)
             val_loss.append(val_op)
             print('Epoch: ', epoch_id, '||  Train loss: ', tr_loss[epoch_id], '| Val loss:', val_loss[epoch_id])
+            if epoch_id % 2 == 0:
+                test_loss, embeddings = self.get_embedding(sess, data='test')
+                if not os.path.exists(self.config.paths['embed']):
+                    os.makedirs(self.config.paths['embed'])
+                with open(self.config.paths['embed']+'_'+str(epoch_id)+'_emb.pkl', 'wb') as out:
+                    pickle.dump(embeddings, out, pickle.HIGHEST_PROTOCOL)
+
         self.coord.request_stop()
         self.coord.join(threads)
         return epoch_id, tr_loss, val_loss
