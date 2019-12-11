@@ -8,7 +8,7 @@ class Parser(object):  #
 
         # Dataset settings
         parser.add_argument("--dataset", default='gcnDataset', help="Dataset to evluate | Check Datasets folder",
-                            choices=['Dummy', 'FB20K'])
+                            choices=['Dummy', 'FB20K', 'gcnDataset'])
         parser.add_argument("--n_augments", default=5, type=int)
         parser.add_argument("--gpu", default=0, help="GPU BUS ID ", type=int)
         parser.add_argument("--gcnKernel", default='rel_gcn', help="kernel names", choices=['rel_gcn'])

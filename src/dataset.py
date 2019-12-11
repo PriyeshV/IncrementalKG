@@ -156,7 +156,7 @@ class Dataset:
             rel_shape = (n_samples, self.n_relations*len(dataset))
 
             new_ent_ids = np.array(new_ent_ids, dtype=int)
-            old_ent_ids = np.unique(np.hstack(old_ent_ids))
+            old_ent_ids = np.unique(np.hstack(old_ent_ids))  # combine neighbors from all graphs
 
             yield new_ent_ids, old_ent_ids, mask_new, mask_old, mask_old_neigh, emb_rel, ip_ent_emb, op_ent_emb,\
                   adj_ind, adj_data, adj_shape, rel_in_ind, rel_in_data, rel_out_ind, rel_out_data, rel_shape,
