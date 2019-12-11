@@ -161,7 +161,17 @@ class Incremental_KG(object):
         t.start()
 
         embeddings = {}
-        new_mse, old_mse, loss, embeddings['new_ent_ids'], embeddings['old_ent_ids'], embeddings['ent_new'], embeddings['ent_old'] = sess.run([self.model.new_ent_mse, self.model.old_ent_mse, self.model.loss, self.data['new_ent_ids'], self.data['old_ent_ids'], self.model.new_ent_predictions, self.model.old_ent_predictions], feed_dict=feed_dict)
+        new_mse, old_mse, loss, embeddings['new_ent_ids'], embeddings['old_ent_ids'], \
+        emb_ent_new, emb_ent_old, embeddings['emb_rel'] = \
+            sess.run([self.model.new_ent_mse, self.model.old_ent_mse, self.model.loss,
+                      self.data['new_ent_ids'], self.data['old_ent_ids'],
+                      self.model.new_ent_predictions, self.model.old_ent_predictions, self.model.data['emb_rel']], feed_dict=feed_dict)
+        with open(path.join(self.config.paths['data'], 'test_0_data_obj_b.pkl'), 'rb') as inp:
+            new_emb = pickle.load(inp).emb_new_ent
+            new_emb[embeddings['new_ent_ids'], :] = emb_ent_new
+            new_emb[embeddings['old_ent_ids'], :] = emb_ent_old
+            embeddings['new_emb'] = new_emb
+            print('Embedding obtained')
         return (loss, new_mse, old_mse), embeddings
 
     def run_epoch(self, sess, data, learning_rate=0, summary_writers=None):

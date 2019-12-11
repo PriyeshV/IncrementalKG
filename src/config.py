@@ -35,8 +35,9 @@ class Config(object):
         self.paths['datasets'] = path.join(self.paths['root'], 'Datasets')
         self.paths['data'] = path.join(self.paths['datasets'], self.dataset_name)
         self.paths['experiments'] = path.join(self.paths['root'], 'Experiments')
-        self.paths['experiment'] = path.join(self.paths['experiments'], args.timestamp, self.dataset_name)
 
+        suffix = 'pri_mac'
+        self.paths['experiment'] = path.join(self.paths['experiments'], args.timestamp, self.dataset_name)
         self.paths['logs'] = path.join(self.paths['experiment'], 'Logs/')
         self.paths['ckpt'] = path.join(self.paths['experiment'], 'Checkpoints/')
         self.paths['embed'] = path.join(self.paths['experiment'], 'Embeddings/')
