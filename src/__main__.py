@@ -103,7 +103,7 @@ class Incremental_KG(object):
     def create_tfgraph_data(self):
         data = {}
         (
-        data['new_ent_id'], data['old_ent_ids'], data['mask_new'], data['mask_old'], data['mask_old_neigh'],
+        data['new_ent_ids'], data['old_ent_ids'], data['mask_new'], data['mask_old'], data['mask_old_neigh'],
         data['emb_rel'], data['ip_ent_emb'], data['op_ent_emb'], adj_ind, adj_data, adj_shape,
         rel_in_ind, rel_in_data, rel_out_ind, rel_out_data, data['rel_shape']) = self.dequeue_op
 
@@ -180,8 +180,8 @@ class Incremental_KG(object):
 
         loss = 0
         for step in range(self.dataset.n_batches[data]):
-            b_mse, _ = sess.run([self.model.mse_loss, train_op], feed_dict=feed_dict)
-            # print('Batch id: ', step, 'of Batches: ', self.dataset.n_batches[data], ' | Loss: ', b_loss, 'MSE: ', b_mse)
+            b_mse, b_loss, _ = sess.run([self.model.mse_loss, self.model.loss, train_op], feed_dict=feed_dict)
+            print('Batch id: ', step, 'of Batches: ', self.dataset.n_batches[data], ' | Loss: ', b_loss, 'MSE: ', b_mse)
             loss += b_mse
         return loss/self.dataset.n_batches[data]
 
