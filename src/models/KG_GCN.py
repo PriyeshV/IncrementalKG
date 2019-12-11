@@ -66,9 +66,9 @@ class KG_GCN(Model):
         self.target_old = target_old
 
         # Squared error loss
-        new_ent_mse = tf.reduce_mean(tf.square(new_ent_predictions - target_new))   # add entity weigthting
-        old_ent_mse = tf.reduce_mean(tf.square(old_ent_predictions - target_old))
-        self.mse_loss = new_ent_mse + old_ent_mse
+        self.new_ent_mse = tf.reduce_mean(tf.square(new_ent_predictions - target_new))   # add entity weigthting
+        self.old_ent_mse = tf.reduce_mean(tf.square(old_ent_predictions - target_old))
+        self.mse_loss = self.new_ent_mse + self.old_ent_mse
         self.loss += self.mse_loss
 
         # L2 Loss

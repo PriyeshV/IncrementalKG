@@ -161,8 +161,8 @@ class Incremental_KG(object):
         t.start()
 
         embeddings = {}
-        loss, embeddings['new_ent_ids'], embeddings['old_ent_ids'], embeddings['ent_new'], embeddings['ent_old'] = sess.run([self.model.loss, self.data['new_ent_ids'], self.data['old_ent_ids'], self.model.new_ent_predictions, self.model.old_ent_predictions], feed_dict=feed_dict)
-        return loss, embeddings
+        new_mse, old_mse, loss, embeddings['new_ent_ids'], embeddings['old_ent_ids'], embeddings['ent_new'], embeddings['ent_old'] = sess.run([self.model.new_ent_mse, self.model.old_ent_mse, self.model.loss, self.data['new_ent_ids'], self.data['old_ent_ids'], self.model.new_ent_predictions, self.model.old_ent_predictions], feed_dict=feed_dict)
+        return (loss, new_mse, old_mse), embeddings
 
     def run_epoch(self, sess, data, learning_rate=0, summary_writers=None):
         if data == 'train':
@@ -180,11 +180,16 @@ class Incremental_KG(object):
         t.start()
 
         loss = 0
-        for step in range(self.dataset.n_batches[data]):
-            b_mse, b_loss, _ = sess.run([self.model.mse_loss, self.model.loss, train_op], feed_dict=feed_dict)
-            # print('Batch id: ', step, 'of Batches: ', self.dataset.n_batches[data], ' | Loss: ', b_loss, 'MSE: ', b_mse)
-            loss += b_mse
-        return loss/self.dataset.n_batches[data]
+        new_mse = 0
+        old_mse = 0
+        n_batches = self.dataset.n_batches[data]
+        for step in range(n_batches):
+            b_new_mse, b_old_mse, b_loss, _ = sess.run([self.model.new_ent_mse, self.model.old_ent_mse, self.model.loss, train_op], feed_dict=feed_dict)
+            # print('Batch id: ', step, 'of Batches: ', self.dataset.n_batches[data], ' | Loss: ', b_loss, 'New MSE: ', b_new_mse, 'Old MSE: ', b_old_mse)
+            loss += b_loss
+            new_mse += b_new_mse
+            old_mse += b_old_mse
+        return (round(loss/n_batches, 3), round(new_mse/n_batches, 3), round(old_mse/n_batches, 3))
 
     def fit(self, sess, summary_writers):
         sess.run(tf.compat.v1.local_variables_initializer())
@@ -196,16 +201,24 @@ class Incremental_KG(object):
         tr_loss, val_loss = [], []
         for epoch_id in range(self.config.max_epochs):
             tr_op = self.run_epoch(sess, 'train', lr, summary_writers['train'])
-            val_op = self.run_epoch(sess, 'val', lr, summary_writers['val'])
             tr_loss.append(tr_op)
-            val_loss.append(val_op)
-            print('Epoch: ', epoch_id, '||  Train loss: ', tr_loss[epoch_id], '| Val loss:', val_loss[epoch_id])
+
             if epoch_id % 2 == 0:
-                test_loss, embeddings = self.get_embedding(sess, data='test')
+                te_loss, embeddings = self.get_embedding(sess, data='test')
                 if not os.path.exists(self.config.paths['embed']):
                     os.makedirs(self.config.paths['embed'])
                 with open(self.config.paths['embed']+'_'+str(epoch_id)+'_emb.pkl', 'wb') as out:
                     pickle.dump(embeddings, out, pickle.HIGHEST_PROTOCOL)
+                print('Epoch: ', epoch_id, '######  Train New MSE: ', tr_loss[-1][1], '- Test New MSE:',
+                      te_loss[1], '||  Train Old MSE: ', tr_loss[-1][2], '- Val Old MSE:', te_loss[2],
+                      '||  Train loss: ', tr_loss[-1][0], '- Val loss:', te_loss[0])
+            else:
+                val_op = self.run_epoch(sess, 'val', lr, summary_writers['val'])
+                val_loss.append(val_op)
+                print('Epoch: ', epoch_id, '###  Train New MSE: ', tr_loss[-1][1], '- Val New MSE:',
+                      val_loss[-1][1], '||  Train Old MSE: ', tr_loss[-1][2], '- Val Old MSE:',
+                      val_loss[-1][2], '||  Train loss: ', tr_loss[-1][0], '- Val loss:',
+                      val_loss[-1][0])
 
         self.coord.request_stop()
         self.coord.join(threads)
@@ -247,7 +260,7 @@ def train_model(dataset):
     summary_writers = model.add_summaries(sess)
     n_epochs, tr_loss, val_loss = model.fit(sess, summary_writers)
     test_loss, embeddings = model.get_embedding(sess, data='test')
-    print('N_epochs: ', n_epochs, '| Train loss: ', tr_loss[-1], '| Val loss:', val_loss[-1], '| Test loss:', test_loss)
+    print('N_epochs: ', n_epochs, '| Train loss: ', tr_loss[-1][0], '| Val loss:', val_loss[-1][0], '| Test loss:', test_loss[0])
     return test_loss, embeddings
 
 

@@ -7,16 +7,16 @@ class Parser(object):  #
         parser = argparse.ArgumentParser()
 
         # Dataset settings
-        parser.add_argument("--dataset", default='Dummy', help="Dataset to evluate | Check Datasets folder",
+        parser.add_argument("--dataset", default='gcnDataset', help="Dataset to evluate | Check Datasets folder",
                             choices=['Dummy', 'FB20K', 'gcnDataset'])
-        parser.add_argument("--n_augments", default=5, type=int)
+        parser.add_argument("--n_augments", default=4, type=int)
         parser.add_argument("--gpu", default=0, help="GPU BUS ID ", type=int)
         parser.add_argument("--gcnKernel", default='rel_gcn', help="kernel names", choices=['rel_gcn'])
 
         # Processing settings
         parser.add_argument("--n_nodes_batch", default=50, type=int)
         parser.add_argument("--lr", default=1e-2, help="Learning rate", type=float)
-        parser.add_argument("--dropout", default=0.5, help="Dropout", type=float,
+        parser.add_argument("--dropout", default=0.2, help="Dropout", type=float,
                             choices=np.round(np.arange(0, 1, 0.05), 2))
         parser.add_argument("--l2", default=1e-3, help="L2 loss", type=float)
         parser.add_argument("--bias", default=True, type=self.str2bool)
